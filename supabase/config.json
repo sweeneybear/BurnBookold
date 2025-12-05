@@ -1,0 +1,11 @@
+{
+  "projectId": "",
+  "functions": {
+    "analyze-sentiment": {
+      "verifyJWT": false
+    },
+    "nl-query": {
+      "verifyJWT": false
+    }
+  }
+}
