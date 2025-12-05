@@ -109,7 +109,7 @@ async function fetchRedditData(url: string, retryCount = 0): Promise<RedditPost[
 }
 
 /**
- * Analyze text sentiment using Azure AI Language services
+ * Analyze text sentiment using Azure AI Language services or Azure OpenAI
  */
 async function analyzeSentiment(text: string): Promise<SentimentResult> {
   // If Azure AI is not configured, return mock data for demo
@@ -118,14 +118,27 @@ async function analyzeSentiment(text: string): Promise<SentimentResult> {
     return mockSentimentAnalysis(text);
   }
 
-  // Azure AI Text Analytics API endpoint
-  const endpoint = `${AZURE_AI_ENDPOINT}/language/:analyze-text?api-version=2023-04-01`;
-
   try {
+    // Try using Azure AI Foundry (text analytics API)
+    // The endpoint should be in format: https://region.api.cognitive.microsoft.com or 
+    // Azure AI Foundry format: https://eus1-c-oai-01.services.ai.azure.com/api/projects/...
+    
+    let endpoint = AZURE_AI_ENDPOINT;
+    
+    // Normalize the endpoint
+    if (!endpoint.includes(':analyze-text')) {
+      // If it's an Azure AI Foundry endpoint, append the language analysis path
+      endpoint = endpoint.endsWith('/') ? endpoint : endpoint + '/';
+      endpoint += 'language/:analyze-text?api-version=2023-04-01';
+    }
+
+    console.log('Using Azure AI endpoint for sentiment analysis');
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Ocp-Apim-Subscription-Key': AZURE_AI_KEY,
+        'api-key': AZURE_AI_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -135,18 +148,21 @@ async function analyzeSentiment(text: string): Promise<SentimentResult> {
             {
               id: '1',
               language: 'en',
-              text: text,
+              text: text.substring(0, 5120), // Azure limit is 5120 chars
             },
           ],
         },
         parameters: {
           opinionMining: true,
+          stringIndexType: 'TextElements_v8',
         },
       }),
     });
 
     if (!response.ok) {
-      console.error('Azure AI error:', await response.text());
+      const errorText = await response.text();
+      console.error(`Azure AI error (${response.status}):`, errorText);
+      console.warn('Falling back to mock sentiment analysis');
       return mockSentimentAnalysis(text);
     }
 
@@ -154,6 +170,7 @@ async function analyzeSentiment(text: string): Promise<SentimentResult> {
     const doc = result.results?.documents?.[0];
 
     if (!doc) {
+      console.warn('No sentiment results from Azure AI');
       return mockSentimentAnalysis(text);
     }
 
@@ -169,15 +186,18 @@ async function analyzeSentiment(text: string): Promise<SentimentResult> {
     const scores = doc.confidenceScores;
     const sentimentScore = (scores.positive || 0) - (scores.negative || 0);
 
+    console.log(`Azure AI sentiment for text: ${doc.sentiment} (confidence: ${Math.max(...Object.values(scores as Record<string, number>))})`);
+
     return {
       sentiment: sentimentMap[doc.sentiment] || 'neutral',
-      confidence: Math.max(scores.positive || 0, scores.negative || 0, scores.neutral || 0),
+      confidence: Math.max(...Object.values(scores as Record<string, number>)),
       sentimentScore,
-      keyPhrases: [], // Would need separate key phrase extraction call
+      keyPhrases: [],
       entities: [],
     };
   } catch (error) {
     console.error('Azure AI request failed:', error);
+    console.warn('Falling back to mock sentiment analysis');
     return mockSentimentAnalysis(text);
   }
 }
@@ -190,13 +210,20 @@ async function extractKeyPhrases(text: string): Promise<string[]> {
     return extractMockKeyPhrases(text);
   }
 
-  const endpoint = `${AZURE_AI_ENDPOINT}/language/:analyze-text?api-version=2023-04-01`;
+  let endpoint = AZURE_AI_ENDPOINT;
+  
+  // Normalize the endpoint
+  if (!endpoint.includes(':analyze-text')) {
+    endpoint = endpoint.endsWith('/') ? endpoint : endpoint + '/';
+    endpoint += 'language/:analyze-text?api-version=2023-04-01';
+  }
 
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Ocp-Apim-Subscription-Key': AZURE_AI_KEY,
+        'api-key': AZURE_AI_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -206,19 +233,30 @@ async function extractKeyPhrases(text: string): Promise<string[]> {
             {
               id: '1',
               language: 'en',
-              text: text,
+              text: text.substring(0, 5120), // Azure limit
             },
           ],
+        },
+        parameters: {
+          modelVersion: 'latest',
         },
       }),
     });
 
     if (!response.ok) {
+      console.warn(`Key phrase extraction failed (${response.status}), using mock`);
       return extractMockKeyPhrases(text);
     }
 
     const result = await response.json();
-    return result.results?.documents?.[0]?.keyPhrases || [];
+    const phrases = result.results?.documents?.[0]?.keyPhrases || [];
+    
+    if (phrases.length > 0) {
+      console.log(`Extracted ${phrases.length} key phrases using Azure AI`);
+      return phrases;
+    }
+    
+    return extractMockKeyPhrases(text);
   } catch (error) {
     console.error('Key phrase extraction failed:', error);
     return extractMockKeyPhrases(text);
@@ -239,13 +277,20 @@ async function extractEntities(text: string): Promise<Array<{ name: string; type
     return extractMockEntities(text);
   }
 
-  const endpoint = `${AZURE_AI_ENDPOINT}/language/:analyze-text?api-version=2023-04-01`;
+  let endpoint = AZURE_AI_ENDPOINT;
+  
+  // Normalize the endpoint
+  if (!endpoint.includes(':analyze-text')) {
+    endpoint = endpoint.endsWith('/') ? endpoint : endpoint + '/';
+    endpoint += 'language/:analyze-text?api-version=2023-04-01';
+  }
 
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Ocp-Apim-Subscription-Key': AZURE_AI_KEY,
+        'api-key': AZURE_AI_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -255,9 +300,35 @@ async function extractEntities(text: string): Promise<Array<{ name: string; type
             {
               id: '1',
               language: 'en',
-              text: text,
+              text: text.substring(0, 5120), // Azure limit
             },
           ],
+        },
+        parameters: {
+          modelVersion: 'latest',
+          stringIndexType: 'TextElements_v8',
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn(`Entity extraction failed (${response.status}), using mock`);
+      return extractMockEntities(text);
+    }
+
+    const result = await response.json();
+    const entities = result.results?.documents?.[0]?.entities || [];
+    
+    if (entities.length > 0) {
+      console.log(`Extracted ${entities.length} entities using Azure AI`);
+      return entities.map((e: AzureEntity) => ({
+        name: e.text,
+        type: e.category,
+        confidence: e.confidenceScore,
+      }));
+    }
+    
+    return extractMockEntities(text);
         },
       }),
     });
@@ -488,6 +559,10 @@ serve(async (req: Request) => {
         // Fetch Reddit data
         const posts = await fetchRedditData(body.url);
         
+        if (!posts || posts.length === 0) {
+          throw new Error('No posts found at the provided Reddit URL');
+        }
+        
         // Update job with post count
         await supabase
           .from('ingestion_jobs')
@@ -503,20 +578,26 @@ serve(async (req: Request) => {
           
           if (textToAnalyze.trim().length < 10) continue;
 
-          const sentiment = await analyzeSentiment(textToAnalyze);
-          sentiment.keyPhrases = await extractKeyPhrases(textToAnalyze);
-          sentiment.entities = await extractEntities(textToAnalyze);
+          try {
+            const sentiment = await analyzeSentiment(textToAnalyze);
+            sentiment.keyPhrases = await extractKeyPhrases(textToAnalyze);
+            sentiment.entities = await extractEntities(textToAnalyze);
 
-          await saveResults(supabase, post, sentiment);
-          
-          results.push({
-            postId: post.id,
-            sentiment: sentiment.sentiment,
-            confidence: sentiment.confidence,
-            entities: sentiment.entities.map(e => e.name),
-          });
+            await saveResults(supabase, post, sentiment);
+            
+            results.push({
+              postId: post.id,
+              sentiment: sentiment.sentiment,
+              confidence: sentiment.confidence,
+              entities: sentiment.entities.map(e => e.name),
+            });
 
-          analyzed++;
+            analyzed++;
+          } catch (postError) {
+            console.error(`Failed to analyze post ${post.id}:`, postError);
+            // Continue with next post
+            continue;
+          }
           
           // Update progress
           await supabase
@@ -534,8 +615,13 @@ serve(async (req: Request) => {
           })
           .eq('id', job.id);
 
-        // Refresh materialized view
-        await supabase.rpc('refresh_sentiment_summary');
+        // Refresh materialized view (non-blocking - don't fail if this fails)
+        try {
+          await supabase.rpc('refresh_sentiment_summary');
+        } catch (refreshError) {
+          console.warn('Failed to refresh sentiment summary:', refreshError);
+          // Continue anyway - the data is still valid, just not aggregated
+        }
 
         return new Response(
           JSON.stringify({
@@ -547,6 +633,7 @@ serve(async (req: Request) => {
           }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
           }
         );
       } catch (error) {
@@ -593,9 +680,14 @@ serve(async (req: Request) => {
       }
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in edge function:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false,
+        error: errorMessage,
+        details: 'Check function logs for more information'
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

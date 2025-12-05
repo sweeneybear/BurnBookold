@@ -15,10 +15,23 @@ const SentimentChart: React.FC<SentimentChartProps> = ({
   type = 'bar',
   title 
 }) => {
-  const maxValue = Math.max(...data.map(d => d.total));
+  const maxValue = data.length > 0 ? Math.max(...data.map(d => d.total)) : 1;
 
   if (type === 'pie') {
     return <PieChart data={data} title={title} />;
+  }
+  
+  if (data.length === 0) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
+        {title && (
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            {title}
+          </h3>
+        )}
+        <p className="text-gray-500 dark:text-gray-400">No data available</p>
+      </div>
+    );
   }
 
   return (

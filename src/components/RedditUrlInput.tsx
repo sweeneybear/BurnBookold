@@ -49,7 +49,12 @@ const RedditUrlInput: React.FC<RedditUrlInputProps> = ({ onSuccess, onError }) =
         setUrl('');
         onSuccess?.(result.jobId || '');
       } else {
-        throw new Error(result.error || 'Analysis failed');
+        const errorMsg = result.error || 'Analysis failed';
+        if (errorMsg.includes('non-2xx status') || errorMsg.includes('500')) {
+          throw new Error('⚠️ Edge Function Error: The Supabase edge function may not be deployed. Please check your Supabase dashboard and run: supabase functions deploy analyze-sentiment');
+        } else {
+          throw new Error(errorMsg);
+        }
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';

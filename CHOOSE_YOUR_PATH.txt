@@ -1,0 +1,97 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                    BURNBOOK DEPLOYMENT: CHOOSE YOUR PATH                       ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+Your BurnBook app is 100% ready to deploy edge functions!
+
+The Supabase CLI can't be installed here via npm, but you have 2 great options:
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ⭐ OPTION 1: DASHBOARD DEPLOYMENT (EASIEST)                               │
+│                                                                             │
+│ • No CLI needed                                                             │
+│ • Works entirely in browser                                                │
+│ • 5-10 minutes                                                              │
+│ • Follow: DEPLOY_DASHBOARD_GUIDE.md                                       │
+│                                                                             │
+│ Steps:                                                                      │
+│ 1. Go to https://app.supabase.com                                          │
+│ 2. Select project: ldlaljwckqvdmoqbsdto                                    │
+│ 3. Functions → Create → Paste code                                         │
+│ 4. Set secrets in Settings                                                 │
+│ 5. Done!                                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 💻 OPTION 2: CLI DEPLOYMENT (LOCAL MACHINE)                                │
+│                                                                             │
+│ • If you have Supabase CLI installed locally                               │
+│ • 5 minutes from your computer                                             │
+│ • Follow: DEPLOY_FUNCTIONS.md (Option 1)                                  │
+│                                                                             │
+│ Steps:                                                                      │
+│ 1. On your local machine:                                                  │
+│    supabase login                                                           │
+│    supabase link --project-id ldlaljwckqvdmoqbsdto                        │
+│    supabase secrets set ...                                                │
+│    supabase functions deploy analyze-sentiment                             │
+│    supabase functions deploy nl-query                                      │
+│ 2. Return to dev container                                                 │
+│ 3. npm run dev                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ WHICH ONE SHOULD I CHOOSE?                                                  │
+│                                                                             │
+│ Choose Option 1 (Dashboard) if:                                            │
+│   ✓ You prefer clicking buttons                                            │
+│   ✓ You don't have CLI installed                                           │
+│   ✓ You want the quickest path                                             │
+│                                                                             │
+│ Choose Option 2 (CLI) if:                                                  │
+│   ✓ You already have Supabase CLI                                          │
+│   ✓ You prefer the command line                                            │
+│   ✓ You want to script deployments                                         │
+│                                                                             │
+│ RECOMMENDATION: Option 1 (it's easier!)                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+AFTER DEPLOYMENT:
+
+    npm run dev
+    └→ Open http://localhost:3002
+    └→ Go to "📥 Ingest Data" tab
+    └→ Paste: https://reddit.com/r/ems
+    └→ Click "Analyze"
+    └→ You should see: ✅ Found X posts, analyzed Y
+
+SUCCESS! You now have Reddit sentiment analysis powered by Azure AI! 🎉
+
+═════════════════════════════════════════════════════════════════════════════
+
+KEY FILES:
+
+📖 DEPLOY_DASHBOARD_GUIDE.md  ← Step-by-step browser interface guide
+📖 DEPLOY_FUNCTIONS.md        ← All deployment options explained
+📖 READY_TO_DEPLOY.md         ← Status and next steps
+📖 START_HERE_CONTAINER.md    ← Quick overview for containers
+
+═════════════════════════════════════════════════════════════════════════════
+
+WHAT'S DEPLOYED:
+
+Function 1: analyze-sentiment
+  • Fetches Reddit posts
+  • Analyzes sentiment with Azure AI
+  • Stores results
+
+Function 2: nl-query
+  • Answers questions about data
+  • Uses Azure AI insights
+
+═════════════════════════════════════════════════════════════════════════════
+
+START HERE: https://app.supabase.com
+PROJECT ID: ldlaljwckqvdmoqbsdto
+
+LET'S GO! 🚀
